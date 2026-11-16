@@ -11,6 +11,9 @@ namespace FuelManagement
         internal static MelonPreferences_Entry<bool> Enabled;
         internal static MelonPreferences_Entry<string> MenuKey;
         internal static MelonPreferences_Entry<bool> ShowHud;
+        internal static MelonPreferences_Entry<bool> HudAlign;
+        internal static MelonPreferences_Entry<float> HudOffsetX;
+        internal static MelonPreferences_Entry<float> HudOffsetY;
 
         // Range
         internal static MelonPreferences_Entry<bool> AutoRange;
@@ -43,12 +46,16 @@ namespace FuelManagement
             MenuKey = Cat.CreateEntry("MenuKey", "F10",
                 description: "Key that opens the menu (Unity Input System key name).");
             ShowHud = Cat.CreateEntry("ShowHud", true, description: "Show the fuel gauge.");
+            HudAlign = Cat.CreateEntry("HudAlign", true,
+                description: "Centre the gauge just above the game's own car gauges. Off: bottom-left corner.");
+            HudOffsetX = Cat.CreateEntry("HudOffsetX", 0f, description: "Moves the gauge right (px at 1080p; negative = left).");
+            HudOffsetY = Cat.CreateEntry("HudOffsetY", 0f, description: "Moves the gauge up (px at 1080p; negative = down).");
 
-            AutoRange = Cat.CreateEntry("AutoRange", true,
-                description: "Size the tank from the map: typical house → question mark → house trips use ~60% " +
-                             "of a tank. Off: use FixedRangeKm.");
+            AutoRange = Cat.CreateEntry("AutoRange", false,
+                description: "On: size the tank from the map (typical house → question mark → house trips use ~60% " +
+                             "of a tank). Off (default): use FixedRangeKm.");
             FixedRangeKm = Cat.CreateEntry("FixedRangeKm", 8f,
-                description: "Full-tank flat-road range in km when AutoRange is off, or before the map is measured.");
+                description: "Full-tank flat-road range in km (default). Also used by AutoRange before the map is measured.");
             AutoPercentile = Cat.CreateEntry("AutoPercentile", 0.75f,
                 description: "AutoRange: which question marks count as 'typical' (0.75 = the nearest 75%).");
             AutoWinding = Cat.CreateEntry("AutoWinding", 1.5f,

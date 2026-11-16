@@ -7,14 +7,14 @@ namespace FuelManagement
 {
     /// <summary>
     /// Fuel management for Over the Hill. Cars have a fuel tank that driving drains (climbing
-    /// more than cruising); any house refills it. The tank is sized from the map so that a trip
-    /// from a house to a typical question mark and back is relaxed, while remote ones need
-    /// planning. Side jerry cans add range. An empty tank puts the car in limp mode (drives
+    /// more than cruising); any house refills it. The tank has a fixed range by default
+    /// (optionally sized from the map so that typical question-mark round trips are relaxed
+    /// and remote ones need planning). Side jerry cans add range. An empty tank puts the car in limp mode (drives
     /// like maximum damage) until it reaches a house. Local only: no network messages.
     /// </summary>
     public sealed class Mod : MelonMod
     {
-        public const string Version = "0.1.0";
+        public const string Version = "0.1.1";
         internal static MelonLogger.Instance Log;
 
         public override void OnInitializeMelon()

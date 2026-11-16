@@ -4,13 +4,14 @@ namespace FuelManagement
 {
     /// <summary>
     /// The fuel loop for the local car: burns fuel by distance driven (climbing costs extra),
-    /// refills it near a house, warns when low, and switches limp mode on when the tank
-    /// runs dry. The level is shared by whatever car you drive and saved in the settings.
+    /// refills it near a house, and switches limp mode on when the tank runs dry. The gauge
+    /// is the only indication (no pop-ups); state changes are logged once each. The level is shared by whatever car you drive and saved in the settings.
     /// </summary>
     internal static class Fuel
     {
         private const float MaxStepM = 30f;      // longer jumps in one frame = respawn/teleport
         private const float MaxRefuelSpeed = 4f; // m/s: roll up to the house, no need to stop dead
+        private const float RefuelStartBelow = 0.99f; // hysteresis: idling at a full tank doesn't restart refuelling
 
         public static readonly FuelTank Tank = new();
         public static bool Refuelling { get; private set; }
@@ -19,7 +20,7 @@ namespace FuelManagement
         private static Vector3 _lastPos;
         private static bool _hasLast;
         private static float _lastSavedLevel = -1f, _nextSave, _nextHouseCheck;
-        private static int _warned; // 0 none, 1 = 25%, 2 = 10%, 3 = empty
+        private static int _warned; // last logged level band: 0 none, 1 = 25%, 2 = 10%, 3 = empty
 
         public static void Init()
         {
@@ -70,12 +71,17 @@ namespace FuelManagement
         private static void UpdateRefuel(Rigidbody body)
         {
             bool near = NearestHouseM <= Settings.RefuelRadius.Value && body.linearVelocity.magnitude <= MaxRefuelSpeed;
-            if (near && Tank.Level < 1f)
+            if (near && (Refuelling || Tank.Level < RefuelStartBelow))
             {
-                if (!Refuelling) Hud.Toast("Refuelling at the house…");
+                if (!Refuelling) Mod.Log.Msg($"Refuelling at a house from {Tank.Level * 100f:0}%.");
                 Refuelling = true;
                 Tank.Refuel(Time.deltaTime / Mathf.Max(0.5f, Settings.RefuelSeconds.Value));
-                if (Tank.Level >= 1f) { Hud.Toast("Tank full."); Save(); }
+                if (Tank.Level >= 1f)
+                {
+                    Refuelling = false;
+                    Mod.Log.Msg("Tank full.");
+                    Save();
+                }
             }
             else Refuelling = false;
         }
@@ -84,11 +90,7 @@ namespace FuelManagement
         {
             int level = WarnLevel(Tank.Level);
             if (level > _warned)
-            {
-                if (level == 1) Hud.Toast("Fuel low: a quarter tank left. Head for a house.");
-                else if (level == 2) Hud.Toast("Fuel very low! Find a house now.", 5f);
-                else Hud.Toast("Out of fuel: the engine is limping. Crawl to a house to refuel.", 6f);
-            }
+                Mod.Log.Msg(level == 3 ? "Out of fuel." : $"Fuel below {(level == 1 ? 25 : 10)}%.");
             _warned = level;
         }
 
@@ -107,7 +109,7 @@ namespace FuelManagement
         public static void Refill()
         {
             Tank.Refuel(1f);
-            Hud.Toast("Tank filled (menu).");
+            Mod.Log.Msg("Tank filled from the menu.");
             Save();
         }
 
