@@ -29,6 +29,9 @@
     <Reference Include="UnityEngine.CoreModule"><HintPath>$(InteropDir)/UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine.IMGUIModule"><HintPath>$(InteropDir)/UnityEngine.IMGUIModule.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="Unity.InputSystem"><HintPath>$(InteropDir)/Unity.InputSystem.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.PhysicsModule"><HintPath>$(InteropDir)/UnityEngine.PhysicsModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Il2CppFusion.Runtime"><HintPath>$(InteropDir)/Il2CppFusion.Runtime.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Il2CppFusion.Common"><HintPath>$(InteropDir)/Il2CppFusion.Common.dll</HintPath><Private>false</Private></Reference>
     <!-- Add only what you use, e.g. UnityEngine.PhysicsModule, UnityEngine.ParticleSystemModule,
          Il2CppFMOD / Il2CppFMODUnity (audio), Il2CppFusion.Runtime/.Common/.Sockets (multiplayer). -->
   </ItemGroup>
