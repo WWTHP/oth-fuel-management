@@ -6,7 +6,8 @@ using UnityEngine;
 namespace FuelManagement
 {
     /// <summary>
-    /// Limp mode for an empty tank: the car drives as it would at maximum damage.
+    /// Limp mode for an empty tank: the car drives worse than at maximum damage
+    /// (max-damage values, then capped at LimpMaxKmh and scaled by LimpPower).
     ///
     /// The game's CarDamageSystem slows a damaged car by scaling the vehicle's speed limit and
     /// engine torque from its "original" values with the DamageEffects curves. We evaluate
@@ -23,7 +24,7 @@ namespace FuelManagement
         private static CarDamageSystem _cds;
         private static bool _savedLimiter, _savedTorqueCap;
         private static float _savedSpeedLimit, _savedPeakTorque, _savedTorqueCapLimit;
-        private static float _speedLimit, _torque;
+        private static float _baseSpeed, _speedMul, _baseTorque, _torqueMul;
         private static bool _useTorqueCap;
 
         public static void Enter(CarDamageSystem cds)
@@ -48,16 +49,21 @@ namespace FuelManagement
 
             // Which engine field the game treats as "max torque": whichever is closest to the original.
             _useTorqueCap = en.torqueCap && Math.Abs(en.torqueCapLimit - baseTorque) < Math.Abs(en.peakRpmTorque - baseTorque);
-            _speedLimit = baseSpeed * speedMul;
-            _torque = baseTorque * torqueMul;
+            _baseSpeed = baseSpeed; _speedMul = speedMul;
+            _baseTorque = baseTorque; _torqueMul = torqueMul;
             _cds = cds;
             Active = true;
-            Mod.Log.Msg($"Limp mode ON. speed limit {sc.speedLimit:0.0} (orig {cds.originalSpeedLimit:0.0}) → {_speedLimit:0.0} " +
-                        $"(x{speedMul:0.00}); torque field {(_useTorqueCap ? "torqueCapLimit" : "peakRpmTorque")} " +
+            Mod.Log.Msg($"Limp mode ON. speed limit {sc.speedLimit:0.0} m/s (orig {cds.originalSpeedLimit:0.0}) → " +
+                        $"{SpeedTarget():0.0} (max damage x{speedMul:0.00}, cap {Settings.LimpMaxKmh.Value:0} km/h); " +
+                        $"torque field {(_useTorqueCap ? "torqueCapLimit" : "peakRpmTorque")} " +
                         $"peak {en.peakRpmTorque:0} cap {en.torqueCapLimit:0}/{en.torqueCap} (orig {cds.originalMaxTorque:0}) " +
-                        $"→ {_torque:0} (x{torqueMul:0.00}).");
+                        $"→ {TorqueTarget():0} (max damage x{torqueMul:0.00}, power x{Settings.LimpPower.Value:0.00}).");
             Enforce();
         }
+
+        // Recomputed every frame so the F10 limp sliders apply immediately.
+        private static float SpeedTarget() => LimpTargets.Speed(_baseSpeed, _speedMul, Settings.LimpMaxKmh.Value);
+        private static float TorqueTarget() => LimpTargets.Torque(_baseTorque, _torqueMul, Settings.LimpPower.Value);
 
         /// <summary>Re-applies the limp values; call every frame (LateUpdate) while active.</summary>
         public static void Enforce()
@@ -66,10 +72,14 @@ namespace FuelManagement
             if (_cds == null || _cds.WasCollected || _cds.vehicle == null) { Active = false; _cds = null; return; }
             var sc = _cds.vehicle.speedControl;
             var en = _cds.vehicle.engine;
-            sc.speedLimiter = true;
-            if (sc.speedLimit != _speedLimit) sc.speedLimit = _speedLimit;
-            if (_useTorqueCap) { if (en.torqueCapLimit != _torque) en.torqueCapLimit = _torque; }
-            else if (en.peakRpmTorque != _torque) en.peakRpmTorque = _torque;
+            float speed = SpeedTarget(), torque = TorqueTarget();
+            if (!float.IsPositiveInfinity(speed))
+            {
+                sc.speedLimiter = true;
+                if (sc.speedLimit != speed) sc.speedLimit = speed;
+            }
+            if (_useTorqueCap) { if (en.torqueCapLimit != torque) en.torqueCapLimit = torque; }
+            else if (en.peakRpmTorque != torque) en.peakRpmTorque = torque;
         }
 
         public static void Exit()

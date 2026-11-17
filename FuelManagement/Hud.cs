@@ -70,6 +70,11 @@ namespace FuelManagement
             Slider(Settings.HudOffsetX, "Gauge offset right (px)", -400f, 400f, "0");
             Slider(Settings.HudOffsetY, "Gauge offset up (px)", -200f, 400f, "0");
             Toggle(Settings.LimpMode, "Limp mode when empty");
+            if (Settings.LimpMode.Value)
+            {
+                Slider(Settings.LimpMaxKmh, "Limp top speed (km/h)", 3f, 40f, "0");
+                Slider(Settings.LimpPower, "Limp power (x max-damage torque)", 0.1f, 1f, "0.00");
+            }
             Toggle(Settings.AutoRange, "Size tank from the map");
             Slider(Settings.RangeScale, "Range scale", 0.3f, 3f, "0.00");
             if (!Settings.AutoRange.Value) Slider(Settings.FixedRangeKm, "Fixed range (km)", 1f, 40f, "0.0");

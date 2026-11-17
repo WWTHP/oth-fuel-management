@@ -33,6 +33,8 @@ namespace FuelManagement
         internal static MelonPreferences_Entry<float> RefuelRadius;
         internal static MelonPreferences_Entry<float> RefuelSeconds;
         internal static MelonPreferences_Entry<bool> LimpMode;
+        internal static MelonPreferences_Entry<float> LimpMaxKmh;
+        internal static MelonPreferences_Entry<float> LimpPower;
         internal static MelonPreferences_Entry<float> LimpFallbackSpeed;
         internal static MelonPreferences_Entry<float> LimpFallbackTorque;
 
@@ -77,7 +79,12 @@ namespace FuelManagement
                 description: "Within this many metres of a house (stopped or crawling) the tank refills.");
             RefuelSeconds = Cat.CreateEntry("RefuelSeconds", 6f, description: "Seconds to fill an empty tank.");
             LimpMode = Cat.CreateEntry("LimpMode", true,
-                description: "Empty tank = the car drives as if at maximum damage until refuelled.");
+                description: "Empty tank = the car crawls (worse than maximum damage) until refuelled.");
+            LimpMaxKmh = Cat.CreateEntry("LimpMaxKmh", 10f,
+                description: "Limp mode top speed in km/h (applied on top of the maximum-damage speed).");
+            LimpPower = Cat.CreateEntry("LimpPower", 0.5f,
+                description: "Limp mode engine power as a fraction of the maximum-damage torque (0.05-1). " +
+                             "Lower = steep hills may become impossible.");
             LimpFallbackSpeed = Cat.CreateEntry("LimpFallbackSpeed", 0.35f,
                 description: "Speed multiplier for limp mode if the game's damage curves can't be read.");
             LimpFallbackTorque = Cat.CreateEntry("LimpFallbackTorque", 0.4f,
