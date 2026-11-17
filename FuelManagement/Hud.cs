@@ -4,8 +4,8 @@ using UnityEngine;
 namespace FuelManagement
 {
     /// <summary>
-    /// IMGUI: the fuel gauge (level, remaining range, nearest house), centred just above the
-    /// game's own gauges (see <see cref="HudAnchor"/>), and the settings menu (MenuKey).
+    /// IMGUI: the fuel gauge (a dial next to the game's tilt dials, see <see cref="FuelDial"/>, or
+    /// a bar centred above the game's gauges), and the settings menu (MenuKey).
     /// No pop-up messages: the gauge is the only in-game indication.
     /// </summary>
     internal static class Hud
@@ -25,7 +25,11 @@ namespace FuelManagement
             float scale = Mathf.Max(1f, Screen.height / 1080f);
             GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(scale, scale, 1f));
 
-            if (Settings.Enabled.Value && Settings.ShowHud.Value && Car.Valid) DrawGauge(scale);
+            if (Settings.Enabled.Value && Settings.ShowHud.Value && Car.Valid)
+            {
+                if (Settings.GaugeDial.Value) FuelDial.Draw(scale, Siphon.Status);
+                else DrawGauge(scale);
+            }
             if (_menuOpen) _menuRect = GUILayout.Window(0x4655454C, _menuRect, (GUI.WindowFunction)MenuWindow, "Fuel management");
             GUI.matrix = Matrix4x4.identity;
         }
@@ -75,6 +79,7 @@ namespace FuelManagement
                             $"{(Car.ExtraTanks > 0 ? $", {Car.ExtraTanks} extra tank part(s)" : "")}).");
             Toggle(Settings.Enabled, "Fuel system on");
             Toggle(Settings.ShowHud, "Show gauge");
+            Toggle(Settings.GaugeDial, "Dial gauge (off: bar)");
             Toggle(Settings.HudAlign, "Line gauge up with the game's gauges");
             Slider(Settings.HudOffsetX, "Gauge offset right (px)", -400f, 400f, "0");
             Slider(Settings.HudOffsetY, "Gauge offset up (px)", -200f, 400f, "0");

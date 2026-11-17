@@ -88,6 +88,85 @@ namespace FuelManagement.Tests
         }
 
         [Fact]
+        public void PlaceDial_BesideTiltPair_MatchesSizeAndSpacing()
+        {
+            // Arrange: two 180 px dials with a 20 px gap between them
+            var tilt = new Box(100f, 900f, 380f, 180f);
+
+            // Act
+            var d = HudLayout.PlaceDial(tilt, null, 140f, 12f, W, H, 0f, 0f);
+
+            // Assert: third dial, same gap, same top, same size
+            Assert.Equal(new Box(500f, 900f, 180f, 180f), d);
+        }
+
+        [Fact]
+        public void PlaceDial_SingleTiltDial_UsesTenPercentSpacing()
+        {
+            var d = HudLayout.PlaceDial(new Box(100f, 900f, 180f, 180f), null, 140f, 12f, W, H, 0f, 0f);
+
+            Assert.Equal(new Box(298f, 900f, 180f, 180f), d);
+        }
+
+        [Fact]
+        public void PlaceDial_TiltWinsOverOtherPanels()
+        {
+            var d = HudLayout.PlaceDial(new Box(100f, 900f, 180f, 180f), new Box(1000f, 100f, 50f, 50f), 140f, 12f,
+                W, H, 0f, 0f);
+
+            Assert.Equal(298f, d.X);
+        }
+
+        [Fact]
+        public void PlaceDial_OtherPanelsOnly_CentresAbove()
+        {
+            var d = HudLayout.PlaceDial(null, new Box(100f, 900f, 300f, 80f), 140f, 12f, W, H, 0f, 0f);
+
+            Assert.Equal(new Box(180f, 748f, 140f, 140f), d);
+        }
+
+        [Fact]
+        public void PlaceDial_NoAnchors_BottomLeftFallback()
+        {
+            Assert.Equal(new Box(20f, H - 160f, 140f, 140f), HudLayout.PlaceDial(null, null, 140f, 12f, W, H, 0f, 0f));
+        }
+
+        [Fact]
+        public void PlaceDial_BadFallbackSize_Uses140()
+        {
+            Assert.Equal(140f, HudLayout.PlaceDial(null, null, float.NaN, 12f, W, H, 0f, 0f).W);
+        }
+
+        [Fact]
+        public void PlaceDial_PushedDown_LowerHalfMayHangOffScreen()
+        {
+            var d = HudLayout.PlaceDial(null, null, 140f, 12f, W, H, 0f, 1000f);
+
+            Assert.Equal(H - 70f, d.Y);
+        }
+
+        [Fact]
+        public void PlaceDial_PushedRight_StaysOnScreen()
+        {
+            var d = HudLayout.PlaceDial(null, null, 140f, 12f, W, H, 5000f, float.NaN);
+
+            Assert.Equal(W - 140f, d.X);
+        }
+
+        [Theory]
+        [InlineData(0f, -90f)]
+        [InlineData(0.5f, 0f)]
+        [InlineData(1f, 90f)]
+        [InlineData(0.25f, -45f)]
+        [InlineData(-1f, -90f)]
+        [InlineData(2f, 90f)]
+        [InlineData(float.NaN, -90f)]
+        public void NeedleAngle_MapsLevelToHalfCircle(float level, float expected)
+        {
+            Assert.Equal(expected, HudLayout.NeedleAngle(level), 4);
+        }
+
+        [Fact]
         public void Box_Edges_AreDerivedFromPositionAndSize()
         {
             var b = new Box(10f, 20f, 30f, 40f);

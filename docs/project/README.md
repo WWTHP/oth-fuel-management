@@ -25,7 +25,8 @@ sent only to peers known to run the mod.
 | `Limp.cs` | limp mode via the game's own `DamageEffects` curves, made harsher by `Core/LimpTargets` |
 | `Siphon.cs` | siphoning: request/answer between receiver and donor, hello/peer tracking |
 | `Net.cs` | Fusion messaging, copied from `snippets/over-the-hill/FusionNet.cs.txt` (tag `FUEL`) |
-| `Hud.cs` | gauge (level, km left, nearest house), F10 menu. No pop-up messages |
+| `Hud.cs` | bar gauge (level, km left, nearest house), F10 menu. No pop-up messages |
+| `FuelDial.cs` | default gauge: a round dial styled like the stock tilt dials, placed to their right |
 | `HudAnchor.cs` | finds the game's gauges on screen: the tilt dials (`ContextUIInclineIndicator`); else `CarHealthUI`, `ContextUIEngineRPMDisplay`, `ContextUIOdometerPanel` |
 | `Core/HudLayout.cs` | gauge placement: centred `12 px` above the game's bottom-left gauge cluster, plus offsets |
 | `Core/FuelTank.cs` | tank level, burn/refuel maths |
@@ -70,7 +71,16 @@ Refuelling starts only below 97% (99% in 0.1.1), so idling at a full tank near a
 "refuelling" and "full" (0.1.0 logged "Tank full." 861 times in one session).
 
 ### Gauge
-Drawn with IMGUI, centred just above the game's own car gauges, found from their
+Default (0.2.0): a **dial** styled like the game's tilt dials (`ContextUIInclineIndicator`): dark
+disc, white ticks every 10% (red below 15%), light-grey lower band. The needle sweeps over the top
+half from E (left) to F (right). The band shows km left and the nearest house. The caption reads
+`FUEL` (`FUEL +1` with a jerry can), or `LIMP` / `REFUEL` / `SIPHON` / `SIPHONED`. Same size as
+the tilt dials, to their right, spaced like they are (`HudLayout.PlaceDial`). Drawn with IMGUI
+from two generated textures, so no game assets are needed. On first sight of the tilt dials the log
+lists their parts (`Tilt dial parts ...`: sprite names, colours, sizes), so a later version could
+reuse the game's own sprites. `GaugeDial` off = the bar below.
+
+Bar: drawn with IMGUI, centred just above the game's own car gauges, found from their
 `RectTransform`s every 2 s (works at any resolution/HUD scale). `HudOffsetX/Y` nudge it.
 With no gauges found (or `HudAlign` off) it sits bottom left. The log prints the found rects
 (`HUD anchors [...] → cluster (...)`). No pop-up text: the gauge is the only indication.
@@ -145,6 +155,8 @@ The gauge shows `siphoning` / `being siphoned` and, while the key is held, a sta
    Turn off "Let other players siphon from me" on the donor: receiver sees "doesn't allow".
 7. Multiplayer with a vanilla player: no errors on their side; holding F11 next to them says
    "no answer".
+9. Dial: sits right of the tilt dials, same size and top edge; needle at F when full, red LIMP
+   when empty. Log: `HUD anchors [...] (tilt dials)` and `Tilt dial parts ...`.
 8. Other mods (WombatGD, AbominableSnowman) still sync: the receive hook chains (log
    `chained after another mod's hook` on whichever loads last).
 
@@ -152,6 +164,6 @@ The gauge shows `siphoning` / `being siphoned` and, while the key is held, a sta
 
 | Version | Date | Change |
 | --- | --- | --- |
-| 0.2.0 | 2026-11-16 | Limp mode harsher (10 km/h cap, half max-damage power, F10 sliders). Multiplayer siphoning (hold F11 next to another car). Gauge anchored on the tilt dials (0.1.1 test at 3440x1440: no anchor matched, health UI is a full-screen container, RPM display is bottom right; hand-tuned offsets reset once via `HudLayoutVersion`). Refuel restarts below 97%. 0.1.1 test confirmed limp works: max damage = speed x0.50, torque x0.80 (9.5 → 4.8 m/s, 121 → 97). **Needs in-game testing, incl. 2-player MP.** |
+| 0.2.0 | 2026-11-16 | Limp mode harsher (10 km/h cap, half max-damage power, F10 sliders). Multiplayer siphoning (hold F11 next to another car). Gauge anchored on the tilt dials (0.1.1 test at 3440x1440: no anchor matched, health UI is a full-screen container, RPM display is bottom right; hand-tuned offsets reset once via `HudLayoutVersion`). Refuel restarts below 97%. Dial gauge styled like the stock dials (bar still available). 0.1.1 test confirmed limp works: max damage = speed x0.50, torque x0.80 (9.5 → 4.8 m/s, 121 → 97). **Needs in-game testing, incl. 2-player MP.** |
 | 0.1.1 | 2026-11-15 | No pop-up messages; gauge centred above the game's gauges (+ offsets); fixed 8 km range by default; fix refuel/full flicker and log spam. |
 | 0.1.0 | 2026-11-15 | First version: tank, consumption, house refuel, jerry can bonus, auto range, limp mode, gauge, F10 menu. **Needs in-game testing.** |

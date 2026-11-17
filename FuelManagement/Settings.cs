@@ -11,6 +11,7 @@ namespace FuelManagement
         internal static MelonPreferences_Entry<bool> Enabled;
         internal static MelonPreferences_Entry<string> MenuKey;
         internal static MelonPreferences_Entry<bool> ShowHud;
+        internal static MelonPreferences_Entry<bool> GaugeDial;
         internal static MelonPreferences_Entry<bool> HudAlign;
         internal static MelonPreferences_Entry<float> HudOffsetX;
         internal static MelonPreferences_Entry<float> HudOffsetY;
@@ -57,6 +58,8 @@ namespace FuelManagement
             MenuKey = Cat.CreateEntry("MenuKey", "F10",
                 description: "Key that opens the menu (Unity Input System key name).");
             ShowHud = Cat.CreateEntry("ShowHud", true, description: "Show the fuel gauge.");
+            GaugeDial = Cat.CreateEntry("GaugeDial", true,
+                description: "Round dial next to the game's tilt dials, styled like them. Off: the bar gauge.");
             HudAlign = Cat.CreateEntry("HudAlign", true,
                 description: "Centre the gauge just above the game's own car gauges. Off: bottom-left corner.");
             HudOffsetX = Cat.CreateEntry("HudOffsetX", 0f, description: "Moves the gauge right (px at 1080p; negative = left).");
