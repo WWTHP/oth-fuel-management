@@ -14,6 +14,7 @@ namespace FuelManagement
         internal static MelonPreferences_Entry<bool> HudAlign;
         internal static MelonPreferences_Entry<float> HudOffsetX;
         internal static MelonPreferences_Entry<float> HudOffsetY;
+        internal static MelonPreferences_Entry<int> HudLayoutVersion;
 
         // Range
         internal static MelonPreferences_Entry<bool> AutoRange;
@@ -52,6 +53,8 @@ namespace FuelManagement
                 description: "Centre the gauge just above the game's own car gauges. Off: bottom-left corner.");
             HudOffsetX = Cat.CreateEntry("HudOffsetX", 0f, description: "Moves the gauge right (px at 1080p; negative = left).");
             HudOffsetY = Cat.CreateEntry("HudOffsetY", 0f, description: "Moves the gauge up (px at 1080p; negative = down).");
+            HudLayoutVersion = Cat.CreateEntry("HudLayoutVersion", 0, description: "Managed by the mod.");
+            MigrateHudLayout();
 
             AutoRange = Cat.CreateEntry("AutoRange", false,
                 description: "On: size the tank from the map (typical house → question mark → house trips use ~60% " +
@@ -91,6 +94,23 @@ namespace FuelManagement
                 description: "Torque multiplier for limp mode if the game's damage curves can't be read.");
 
             SavedLevel = Cat.CreateEntry("SavedLevel", 1f, description: "Fuel level at last save (0-1). Managed by the mod.");
+        }
+
+        /// <summary>
+        /// Layout 2 anchors the gauge on the tilt dials. Offsets tuned against the old fallback
+        /// position would push it off them, so they're reset once.
+        /// </summary>
+        private static void MigrateHudLayout()
+        {
+            const int Current = 2;
+            if (HudLayoutVersion.Value >= Current) return;
+            if (HudOffsetX.Value != 0f || HudOffsetY.Value != 0f)
+                Mod.Log.Msg($"Gauge now lines up with the tilt dials by itself; " +
+                                $"reset offsets ({HudOffsetX.Value:0}, {HudOffsetY.Value:0}) to 0.");
+            HudOffsetX.Value = 0f;
+            HudOffsetY.Value = 0f;
+            HudLayoutVersion.Value = Current;
+            Save();
         }
 
         public static void Save() => Cat.SaveToFile(false);

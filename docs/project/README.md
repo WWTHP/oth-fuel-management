@@ -23,7 +23,7 @@ only their own car, so there's nothing to sync and vanilla peers are unaffected.
 | `Fuel.cs` | per-frame loop: burn by distance + climb, refuel near a house, low-fuel warnings, limp on/off, save |
 | `Limp.cs` | limp mode via the game's own `DamageEffects` curves |
 | `Hud.cs` | gauge (level, km left, nearest house), F10 menu. No pop-up messages |
-| `HudAnchor.cs` | finds the game's gauges on screen (`CarHealthUI`, `ContextUIEngineRPMDisplay`, `ContextUIOdometerPanel`) |
+| `HudAnchor.cs` | finds the game's gauges on screen: the tilt dials (`ContextUIInclineIndicator`); else `CarHealthUI`, `ContextUIEngineRPMDisplay`, `ContextUIOdometerPanel` |
 | `Core/HudLayout.cs` | gauge placement: centred `12 px` above the game's bottom-left gauge cluster, plus offsets |
 | `Core/FuelTank.cs` | tank level, burn/refuel maths |
 | `Core/RangeCalibration.cs` | range from the house/question-mark layout |
@@ -60,7 +60,7 @@ reports; the log lists every mounted part on change (`Mounted parts: [...]`).
 
 ### Refuel
 Within `RefuelRadius` (40 m) of a house, moving under 4 m/s, the tank fills in `RefuelSeconds` (6 s).
-Refuelling starts only below 99%, so idling at a full tank near a house doesn't flicker between
+Refuelling starts only below 97% (99% in 0.1.1), so idling at a full tank near a house doesn't flicker between
 "refuelling" and "full" (0.1.0 logged "Tank full." 861 times in one session).
 
 ### Gauge
@@ -111,5 +111,6 @@ the multiplayer damage state are unaffected. On refuel the captured settings are
 
 | Version | Date | Change |
 | --- | --- | --- |
+| (0.2.0) | 2026-11-16 | 0.1.1 test (3440x1440): no anchor matched (health UI is a full-screen container, RPM display is bottom right), so the gauge sat in the fallback corner and was hand-nudged (105, 60). Now anchored on the tilt dials; offsets reset once (`HudLayoutVersion`). Limp confirmed working: max damage = speed x0.50, torque x0.80 (9.5 → 4.8 m/s, 121 → 97). Refuel restarts below 97%. |
 | 0.1.1 | 2026-11-15 | No pop-up messages; gauge centred above the game's gauges (+ offsets); fixed 8 km range by default; fix refuel/full flicker and log spam. |
 | 0.1.0 | 2026-11-15 | First version: tank, consumption, house refuel, jerry can bonus, auto range, limp mode, gauge, F10 menu. **Needs in-game testing.** |

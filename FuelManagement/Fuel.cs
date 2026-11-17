@@ -11,7 +11,7 @@ namespace FuelManagement
     {
         private const float MaxStepM = 30f;      // longer jumps in one frame = respawn/teleport
         private const float MaxRefuelSpeed = 4f; // m/s: roll up to the house, no need to stop dead
-        private const float RefuelStartBelow = 0.99f; // hysteresis: idling at a full tank doesn't restart refuelling
+        private const float RefuelStartBelow = 0.97f; // hysteresis: pottering about at a full tank doesn't restart refuelling
 
         public static readonly FuelTank Tank = new();
         public static bool Refuelling { get; private set; }

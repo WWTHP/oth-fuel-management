@@ -6,8 +6,11 @@ using UnityEngine;
 namespace FuelManagement
 {
     /// <summary>
-    /// Finds where the game draws its own car gauges (health, RPM, odometer panels) on screen,
-    /// so the fuel gauge can sit centred just above them at any resolution or HUD scale.
+    /// Finds where the game draws its own car gauges on screen, so the fuel gauge can sit centred
+    /// just above them at any resolution or HUD scale. The anchor is the pair of tilt dials
+    /// (<c>ContextUIInclineIndicator</c>, bottom left). Only if they're hidden do the health,
+    /// RPM and odometer panels count (0.1.1 used only those: on a 3440x1440 screen the health UI
+    /// is a full-screen container and the RPM display sits bottom right, so nothing matched).
     /// Rescans every 2 s (HUD panels appear/disappear with the game state); logs the rects
     /// when they change so placement can be checked from the log.
     /// </summary>
@@ -24,10 +27,12 @@ namespace FuelManagement
         {
             if (Time.unscaledTime < _next) return;
             _next = Time.unscaledTime + 2f;
+            var incline = new List<HudLayout.Box>();
             var boxes = new List<HudLayout.Box>();
             var names = new List<string>();
             try
             {
+                Collect(Object.FindObjectsOfType<ContextUIInclineIndicator>(), incline, names);
                 Collect(Object.FindObjectsOfType<CarHealthUI>(), boxes, names);
                 Collect(Object.FindObjectsOfType<ContextUIEngineRPMDisplay>(), boxes, names);
                 Collect(Object.FindObjectsOfType<ContextUIOdometerPanel>(), boxes, names);
@@ -38,9 +43,11 @@ namespace FuelManagement
                 Log("HUD anchor scan failed: " + ex.Message);
                 return;
             }
-            Cluster = HudLayout.GaugeCluster(boxes, Screen.width, Screen.height);
+            var tilt = HudLayout.GaugeCluster(incline, Screen.width, Screen.height);
+            Cluster = tilt ?? HudLayout.GaugeCluster(boxes, Screen.width, Screen.height);
             Log($"HUD anchors [{string.Join("; ", names)}] screen {Screen.width}x{Screen.height} → cluster " +
-                (Cluster.HasValue ? Fmt(Cluster.Value) : "none (fallback position)"));
+                (Cluster.HasValue ? Fmt(Cluster.Value) + (tilt.HasValue ? " (tilt dials)" : " (other panels)")
+                                  : "none (fallback position)"));
         }
 
         private static void Collect<T>(Il2CppArrayBase<T> found, List<HudLayout.Box> boxes, List<string> names)
