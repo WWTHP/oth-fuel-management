@@ -61,8 +61,8 @@ Clamped to 2–60 km. Before the map is measured, `FixedRangeKm` applies. The lo
 tuning can start from real numbers.
 
 ### Extra tanks
-Mounted parts whose `VehiclePartSO` name contains a `TankKeywords` keyword (`jerry,fuel,tank`)
-each add `TankBonus` (+40%), up to `MaxExtraTanks` (2). The game's assets contain
+Every mounted part whose `VehiclePartSO` name contains a `TankKeywords` keyword (`jerry,fuel,tank`)
+adds `TankBonus` (+40%), up to `MaxExtraTanks` (2). Identical copies (one on each side) count separately. The game's assets contain
 `Side_Jerry Cans` / `Side_Jerrycan`. **Unconfirmed in game** which name the mounted part
 reports; the log lists every mounted part on change (`Mounted parts: [...]`).
 
@@ -181,6 +181,7 @@ The gauge shows `siphoning` / `being siphoned` and, while the key is held, a sta
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 0.2.3 | 2026-11-17 | Every mounted extra-tank part counts (a can on each side = +2), still capped at `MaxExtraTanks` (2). Before, identical names counted once. |
 | 0.2.2 | 2026-11-16 | Fuel dial: own tick scale over the top (every 10%, majors at E/½/F, red at 0–10%) replacing the stock side-only `Lines`; FUEL caption moved off the horizon. 0.2.1 test: clone worked (font NunitoSans-Bold SDF, no layout group). |
 | 0.2.1 | 2026-11-16 | Fuel dial is now a clone of the game's own tilt dial (needle, TMP text); the drawn dial is only a fallback. 0.2.0 test: tilt-dial anchor found, limp ON/OFF worked (2.8 m/s, torque 43–48), multiplayer hook chained cleanly; drawn dial hard to read / off-style. |
 | 0.2.0 | 2026-11-16 | Limp mode harsher (10 km/h cap, half max-damage power, F10 sliders). Multiplayer siphoning (hold F11 next to another car). Gauge anchored on the tilt dials (0.1.1 test at 3440x1440: no anchor matched, health UI is a full-screen container, RPM display is bottom right; hand-tuned offsets reset once via `HudLayoutVersion`). Refuel restarts below 97%. Dial gauge styled like the stock dials (bar still available). 0.1.1 test confirmed limp works: max damage = speed x0.50, torque x0.80 (9.5 → 4.8 m/s, 121 → 97). **Needs in-game testing, incl. 2-player MP.** |

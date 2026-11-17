@@ -60,11 +60,19 @@ namespace FuelManagement.Tests
         }
 
         [Fact]
-        public void CountExtraTanks_DuplicateAndMultiKeywordNames_CountDistinctParts()
+        public void CountExtraTanks_SameCanOnBothSides_CountsEachCopy()
         {
             var parts = new List<string> { "Side_Jerrycan", "side_jerrycan", "Rear_FuelTank", null, "" };
 
-            Assert.Equal(2, Trip.CountExtraTanks(parts, Trip.ParseKeywords("jerry,fuel,tank")));
+            Assert.Equal(3, Trip.CountExtraTanks(parts, Trip.ParseKeywords("jerry,fuel,tank")));
+        }
+
+        [Fact]
+        public void CountExtraTanks_NameMatchingSeveralKeywords_CountsOnce()
+        {
+            var parts = new List<string> { "Jerry_FuelTank" };
+
+            Assert.Equal(1, Trip.CountExtraTanks(parts, Trip.ParseKeywords("jerry,fuel,tank")));
         }
 
         [Fact]

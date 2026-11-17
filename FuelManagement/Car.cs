@@ -139,12 +139,14 @@ namespace FuelManagement
             }
             names.Sort();
             var joined = string.Join(", ", names);
-            int tanks = Trip.CountExtraTanks(names, Trip.ParseKeywords(Settings.TankKeywords.Value));
+            int found = Trip.CountExtraTanks(names, Trip.ParseKeywords(Settings.TankKeywords.Value));
+            int tanks = System.Math.Clamp(found, 0, System.Math.Max(0, Settings.MaxExtraTanks.Value));
             if (joined != _lastParts || tanks != ExtraTanks)
             {
                 _lastParts = joined;
                 ExtraTanks = tanks;
-                Mod.Log.Msg($"Mounted parts: [{joined}] → {tanks} extra tank part(s).");
+                Mod.Log.Msg($"Mounted parts: [{joined}] → {found} extra tank part(s)" +
+                            (found != tanks ? $", {tanks} count (MaxExtraTanks)." : "."));
             }
         }
     }
