@@ -5,12 +5,13 @@ Project layer for `WWTHP/oth-fuel-management`. Game layer: [Over the Hill](../ga
 Every car has a fuel tank. Driving drains it, any **house** (a `Cabin` point of interest) refills
 it, and **side jerry cans** (cosmetic) add range. Design goal: a trip from a house to a question
 mark and back is relaxed; distant question marks need planning. When the tank runs dry the car
-goes into **limp mode**, driving the way the game drives a car at maximum damage, until it
-reaches a house.
+goes into **limp mode**, crawling worse than a car at maximum damage, until it reaches a house.
+In multiplayer, a player can **siphon** fuel from another player's car parked right next to theirs.
 
-Current version: `Mod.Version` in `FuelManagement/Mod.cs`. Menu key **F10**. Settings in
-`MelonPreferences.cfg [FuelManagement]`. **No network messages**: each player's game handles
-only their own car, so there's nothing to sync and vanilla peers are unaffected.
+Current version: `Mod.Version` in `FuelManagement/Mod.cs`. Menu key **F10**, siphon key **F11**
+(hold). Settings in `MelonPreferences.cfg [FuelManagement]`. Each player's game owns only its
+own tank. The only network traffic is siphoning (Fusion tag `"FUEL"` `0x4C455546`, protocol 1),
+sent only to peers known to run the mod.
 
 ## Layout
 
@@ -21,13 +22,18 @@ only their own car, so there's nothing to sync and vanilla peers are unaffected.
 | `Car.cs` | finds the local car (`VehicleInput` with input authority), its `Rigidbody`, `CarDamageSystem`, and mounted `VehicleUpgradeObject` parts → extra-tank count |
 | `Houses.cs` | scans `PointOfInterest`s: `Cabin`s are houses, everything else counts as a question mark; calibrates the range |
 | `Fuel.cs` | per-frame loop: burn by distance + climb, refuel near a house, low-fuel warnings, limp on/off, save |
-| `Limp.cs` | limp mode via the game's own `DamageEffects` curves |
+| `Limp.cs` | limp mode via the game's own `DamageEffects` curves, made harsher by `Core/LimpTargets` |
+| `Siphon.cs` | siphoning: request/answer between receiver and donor, hello/peer tracking |
+| `Net.cs` | Fusion messaging, copied from `snippets/over-the-hill/FusionNet.cs.txt` (tag `FUEL`) |
 | `Hud.cs` | gauge (level, km left, nearest house), F10 menu. No pop-up messages |
 | `HudAnchor.cs` | finds the game's gauges on screen (`CarHealthUI`, `ContextUIEngineRPMDisplay`, `ContextUIOdometerPanel`) |
 | `Core/HudLayout.cs` | gauge placement: centred `12 px` above the game's bottom-left gauge cluster, plus offsets |
 | `Core/FuelTank.cs` | tank level, burn/refuel maths |
 | `Core/RangeCalibration.cs` | range from the house/question-mark layout |
 | `Core/Trip.cs` | per-frame distance/climb with teleport guard; extra-tank keyword matching |
+| `Core/LimpTargets.cs` | limp speed limit (max-damage speed capped at `LimpMaxKmh`) and torque (× `LimpPower`) |
+| `Core/SiphonWire.cs` | siphon packet format; strict parser for untrusted packets |
+| `Core/SiphonMath.cs` | request size (room in tank) and grant (keeps the donor's reserve) |
 
 ## Design
 
@@ -81,6 +87,30 @@ the multiplayer damage state are unaffected. On refuel the captured settings are
 (`LimpFallbackSpeed` 0.35, `LimpFallbackTorque` 0.4) apply if the curves can't be read.
 `accelerationMultiplier` isn't reproduced: what the game applies it to isn't visible from the stubs.
 
+Since 0.2.0 it's harsher than maximum damage (user request): the speed limit is also capped at
+`LimpMaxKmh` (10 km/h) and the torque multiplied by `LimpPower` (0.5). Both are F10 sliders and
+apply immediately (targets are recomputed every frame). Very low power may make steep hills
+impossible; the F10 "Fill tank" button is the escape hatch in single player.
+
+### Siphoning (multiplayer)
+Hold `SiphonKey` (F11) with your car stopped (< 2 m/s) within `SiphonRadius` (6 m, centre to
+centre) of another player's car. Each tank exists only in its owner's game, so it's a
+request/answer exchange, one request in flight at a time, every 0.5 s:
+
+1. Receiver → `SiphonRequest(id, donor, receiver, amount)`: amount = `SiphonRate` (0.1 tank/s) ×
+   0.5 s, limited to the room in its tank.
+2. Donor checks: fuel system on and `AllowSiphon`; it sees the receiver's car within radius + 3 m
+   (its own view, so a distant player can't drain it); gives at most what's above its
+   `SiphonReserve` (15%). It subtracts that and answers `SiphonGive(id, …, amount, code)`.
+3. Receiver adds exactly the given amount, so fuel is neither created nor lost. Unanswered
+   requests stay creditable for 30 s. With no answer after 2.5 s the gauge says the other driver
+   (and the host) need the mod, and it retries every 2.5 s.
+
+Amounts are fractions of a tank (≤ 0.25 per packet). Packets go out via `Net.Broadcast` (on a
+client: to the host, which relays to modded peers), naming donor and receiver; others ignore
+them. A one-byte `Hello` announces the mod; the host replies so clients know it's modded.
+The gauge shows `siphoning` / `being siphoned` and, while the key is held, a status line above it.
+
 ## Riskiest assumptions (check in the first in-game run)
 
 1. Writing VPP `speedControl` / `engine` settings at runtime takes effect (the game's own debuffs
@@ -95,6 +125,9 @@ the multiplayer damage state are unaffected. On refuel the captured settings are
 4. POIs stream in: the calibration grows as more are found, so the range can change early in a
    session (fuel is stored as a fraction, so the level doesn't jump).
 5. The game's gauges are found and are the bottom-left cluster. Log: `HUD anchors [...]`.
+6. Siphoning: `VehicleInput.Object.InputAuthority` identifies each car's driver on every peer
+   (same approach as AbominableSnowman's `Cars.cs`), and remote car transforms are close enough
+   to the true positions for a 6 m (+3 m slack) check.
 
 ## In-game test plan
 
@@ -105,11 +138,20 @@ the multiplayer damage state are unaffected. On refuel the captured settings are
 3. Mount side jerry cans: gauge shows `+1 can` and more km.
 4. Menu (F10) → Range scale 0.3, drive until empty: gauge shows LIMP, car crawls.
    Crawl to a house: refuels, limp off, speed back to normal (and still damaged if it was).
-5. Multiplayer client: own gauge works; nothing changes for other players.
+5. Limp: top speed ≈ 10 km/h; F10 limp sliders change it live. Log: `Limp mode ON ... cap 10 km/h`.
+6. Multiplayer (host + one client, both modded): log shows `Multiplayer link ready.` and
+   `Player N has the fuel mod`. Park side by side, hold F11 on the emptier car: gauge says
+   `siphoning`, the other says `being siphoned`; the donor stops at 15%. Drive apart: stops.
+   Turn off "Let other players siphon from me" on the donor: receiver sees "doesn't allow".
+7. Multiplayer with a vanilla player: no errors on their side; holding F11 next to them says
+   "no answer".
+8. Other mods (WombatGD, AbominableSnowman) still sync: the receive hook chains (log
+   `chained after another mod's hook` on whichever loads last).
 
 ## Changelog
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 0.2.0 | 2026-11-16 | Limp mode harsher (10 km/h cap, half max-damage power, F10 sliders). Multiplayer siphoning (hold F11 next to another car). **Needs in-game testing, incl. 2-player MP.** |
 | 0.1.1 | 2026-11-15 | No pop-up messages; gauge centred above the game's gauges (+ offsets); fixed 8 km range by default; fix refuel/full flicker and log spam. |
 | 0.1.0 | 2026-11-15 | First version: tank, consumption, house refuel, jerry can bonus, auto range, limp mode, gauge, F10 menu. **Needs in-game testing.** |
