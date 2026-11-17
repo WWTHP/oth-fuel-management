@@ -6,12 +6,15 @@ using MelonLoader;
 namespace FuelManagement
 {
     /// <summary>
-    /// Entry point: wires MelonLoader lifecycle callbacks to the mod's subsystems.
-    /// Keep logic out of this file. Describe here what the mod does in the game.
+    /// Fuel management for Over the Hill. Cars have a fuel tank that driving drains (climbing
+    /// more than cruising); any house refills it. The tank has a fixed range by default
+    /// (optionally sized from the map so that typical question-mark round trips are relaxed
+    /// and remote ones need planning). Side jerry cans add range. An empty tank puts the car in limp mode (drives
+    /// like maximum damage) until it reaches a house. Local only: no network messages.
     /// </summary>
     public sealed class Mod : MelonMod
     {
-        public const string Version = "0.1.0";
+        public const string Version = "0.1.1";
         internal static MelonLogger.Instance Log;
 
         public override void OnInitializeMelon()
@@ -19,13 +22,43 @@ namespace FuelManagement
             Log = LoggerInstance;
             Settings.Init();
             CrashGuard.Init();
-            Log.Msg($"FuelManagement {Version} loaded. {Settings.MenuKey.Value} = menu.");
+            Fuel.Init();
+            Log.Msg($"FuelManagement {Version} loaded. {Settings.MenuKey.Value} = menu. " +
+                    $"Fuel {Fuel.Tank.Level * 100f:0}%.");
+        }
+
+        public override void OnSceneWasInitialized(int buildIndex, string sceneName)
+        {
+            Fuel.OnSceneChanged();
+            Houses.Reset();
         }
 
         public override void OnUpdate()
         {
-            if (!Settings.Enabled.Value) return;
-            if (Settings.Pressed(Settings.MenuKey)) Log.Msg("Menu key pressed.");
+            Hud.Update();
+            if (!Settings.Enabled.Value)
+            {
+                Limp.Exit();
+                return;
+            }
+            try
+            {
+                Car.Update();
+                Houses.Update();
+                Fuel.Update();
+            }
+            catch (System.Exception ex) { Log.Warning("Update: " + ex); }
         }
+
+        public override void OnLateUpdate()
+        {
+            if (!Settings.Enabled.Value) return;
+            try { Fuel.LateUpdate(); }
+            catch (System.Exception ex) { Log.Warning("LateUpdate: " + ex.Message); }
+        }
+
+        public override void OnGUI() => Hud.Draw();
+
+        public override void OnApplicationQuit() => Fuel.Save();
     }
 }
