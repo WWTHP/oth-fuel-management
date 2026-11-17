@@ -11,6 +11,7 @@ namespace FuelManagement
         internal static MelonPreferences_Entry<bool> Enabled;
         internal static MelonPreferences_Entry<string> MenuKey;
         internal static MelonPreferences_Entry<bool> ShowHud;
+        internal static MelonPreferences_Entry<bool> GaugeDial;
         internal static MelonPreferences_Entry<bool> HudAlign;
         internal static MelonPreferences_Entry<float> HudOffsetX;
         internal static MelonPreferences_Entry<float> HudOffsetY;
@@ -39,6 +40,14 @@ namespace FuelManagement
         internal static MelonPreferences_Entry<float> LimpFallbackSpeed;
         internal static MelonPreferences_Entry<float> LimpFallbackTorque;
 
+        // Siphoning (multiplayer)
+        internal static MelonPreferences_Entry<bool> Multiplayer;
+        internal static MelonPreferences_Entry<string> SiphonKey;
+        internal static MelonPreferences_Entry<float> SiphonRadius;
+        internal static MelonPreferences_Entry<float> SiphonRate;
+        internal static MelonPreferences_Entry<bool> AllowSiphon;
+        internal static MelonPreferences_Entry<float> SiphonReserve;
+
         // State
         internal static MelonPreferences_Entry<float> SavedLevel;
 
@@ -49,6 +58,8 @@ namespace FuelManagement
             MenuKey = Cat.CreateEntry("MenuKey", "F10",
                 description: "Key that opens the menu (Unity Input System key name).");
             ShowHud = Cat.CreateEntry("ShowHud", true, description: "Show the fuel gauge.");
+            GaugeDial = Cat.CreateEntry("GaugeDial", true,
+                description: "Round dial next to the game's tilt dials, styled like them. Off: the bar gauge.");
             HudAlign = Cat.CreateEntry("HudAlign", true,
                 description: "Centre the gauge just above the game's own car gauges. Off: bottom-left corner.");
             HudOffsetX = Cat.CreateEntry("HudOffsetX", 0f, description: "Moves the gauge right (px at 1080p; negative = left).");
@@ -93,6 +104,19 @@ namespace FuelManagement
             LimpFallbackTorque = Cat.CreateEntry("LimpFallbackTorque", 0.4f,
                 description: "Torque multiplier for limp mode if the game's damage curves can't be read.");
 
+            Multiplayer = Cat.CreateEntry("Multiplayer", true,
+                description: "Talk to other players who run this mod (needed for siphoning). Takes effect on the next session.");
+            SiphonKey = Cat.CreateEntry("SiphonKey", "F11",
+                description: "Hold next to another player's car to siphon fuel from it (Unity Input System key name).");
+            SiphonRadius = Cat.CreateEntry("SiphonRadius", 6f,
+                description: "How close (m, car centre to car centre) the other car must be.");
+            SiphonRate = Cat.CreateEntry("SiphonRate", 0.1f,
+                description: "Fraction of a tank siphoned per second while the key is held.");
+            AllowSiphon = Cat.CreateEntry("AllowSiphon", true,
+                description: "Let other players siphon fuel from your car.");
+            SiphonReserve = Cat.CreateEntry("SiphonReserve", 0.15f,
+                description: "Fraction of your tank others can never siphon away.");
+
             SavedLevel = Cat.CreateEntry("SavedLevel", 1f, description: "Fuel level at last save (0-1). Managed by the mod.");
         }
 
@@ -120,6 +144,13 @@ namespace FuelManagement
             var kb = Keyboard.current;
             if (kb == null || !Enum.TryParse(entry.Value, true, out Key key) || key == Key.None) return false;
             return kb[key].wasPressedThisFrame;
+        }
+
+        public static bool Held(MelonPreferences_Entry<string> entry)
+        {
+            var kb = Keyboard.current;
+            if (kb == null || !Enum.TryParse(entry.Value, true, out Key key) || key == Key.None) return false;
+            return kb[key].isPressed;
         }
     }
 }

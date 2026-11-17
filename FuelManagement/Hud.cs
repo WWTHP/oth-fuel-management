@@ -4,20 +4,23 @@ using UnityEngine;
 namespace FuelManagement
 {
     /// <summary>
-    /// IMGUI: the fuel gauge (level, remaining range, nearest house), centred just above the
-    /// game's own gauges (see <see cref="HudAnchor"/>), and the settings menu (MenuKey).
+    /// IMGUI: the fuel gauge (a dial next to the game's tilt dials, see <see cref="FuelDial"/>, or
+    /// a bar centred above the game's gauges), and the settings menu (MenuKey).
     /// No pop-up messages: the gauge is the only in-game indication.
     /// </summary>
     internal static class Hud
     {
-        private const float GaugeW = 260f, GaugeH = 52f, Gap = 12f;
+        private const float GaugeW = 260f, GaugeH = 52f, Gap = 12f, StatusH = 20f;
         private static bool _menuOpen;
         private static Rect _menuRect = new(60f, 120f, 420f, 0f);
 
         public static void Update()
         {
             if (Settings.Pressed(Settings.MenuKey)) _menuOpen = !_menuOpen;
-            if (Settings.Enabled.Value && Settings.ShowHud.Value && Settings.HudAlign.Value) HudAnchor.Update();
+            bool gauge = Settings.Enabled.Value && Settings.ShowHud.Value;
+            if (gauge && Settings.HudAlign.Value) HudAnchor.Update();
+            try { StockDial.Update(gauge && Settings.GaugeDial.Value && Settings.HudAlign.Value && Car.Valid); }
+            catch (System.Exception ex) { Mod.Log.Warning("Fuel dial: " + ex.Message); }
         }
 
         public static void Draw()
@@ -25,7 +28,15 @@ namespace FuelManagement
             float scale = Mathf.Max(1f, Screen.height / 1080f);
             GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(scale, scale, 1f));
 
-            if (Settings.Enabled.Value && Settings.ShowHud.Value && Car.Valid) DrawGauge(scale);
+            if (Settings.Enabled.Value && Settings.ShowHud.Value && Car.Valid)
+            {
+                if (Settings.GaugeDial.Value)
+                {
+                    // The cloned stock dial draws itself; the IMGUI dial is the fallback.
+                    if (!StockDial.Ready) FuelDial.Draw(scale, Siphon.Status);
+                }
+                else DrawGauge(scale);
+            }
             if (_menuOpen) _menuRect = GUILayout.Window(0x4655454C, _menuRect, (GUI.WindowFunction)MenuWindow, "Fuel management");
             GUI.matrix = Matrix4x4.identity;
         }
@@ -38,13 +49,19 @@ namespace FuelManagement
                 var c = HudAnchor.Cluster.Value;
                 cluster = new HudLayout.Box(c.X / scale, c.Y / scale, c.W / scale, c.H / scale);
             }
-            var b = HudLayout.Place(cluster, GaugeW, GaugeH, Gap, Screen.width / scale, Screen.height / scale,
+            string status = Siphon.Status;
+            // An extra status line on top, only while siphoning has something to say. The box
+            // grows upwards so it never covers the game's gauges below.
+            float extra = status.Length > 0 ? StatusH : 0f;
+            var b = HudLayout.Place(cluster, GaugeW, GaugeH + extra, Gap, Screen.width / scale, Screen.height / scale,
                 Settings.HudOffsetX.Value, -Settings.HudOffsetY.Value);
             var r = new Rect(b.X, b.Y, b.W, b.H);
+            float top = r.y + extra; // where the normal gauge content starts
 
             float level = Fuel.Tank.Level;
             GUI.Box(r, "");
-            var bar = new Rect(r.x + 10f, r.y + 8f, r.width - 20f, 12f);
+            if (extra > 0f) GUI.Label(new Rect(r.x + 10f, r.y + 4f, r.width - 20f, StatusH), "<i>" + status + "</i>");
+            var bar = new Rect(r.x + 10f, top + 8f, r.width - 20f, 12f);
             GUI.Box(bar, "");
             var old = GUI.color;
             GUI.color = level > 0.25f ? new Color(0.45f, 0.85f, 0.4f) : level > 0.1f ? new Color(1f, 0.75f, 0.2f) : new Color(1f, 0.3f, 0.25f);
@@ -53,9 +70,12 @@ namespace FuelManagement
 
             float rangeKm = Fuel.Tank.RemainingM(Fuel.RangeM) / 1000f;
             string house = float.IsInfinity(Fuel.NearestHouseM) ? "?" : $"{Fuel.NearestHouseM / 1000f:0.0} km";
-            string state = Limp.Active ? " <color=#ff6050>LIMP</color>" : Fuel.Refuelling ? " <color=#80d0ff>refuelling</color>" : "";
+            string state = Limp.Active ? " <color=#ff6050>LIMP</color>"
+                : Fuel.Refuelling ? " <color=#80d0ff>refuelling</color>"
+                : Siphon.Receiving ? " <color=#80d0ff>siphoning</color>"
+                : Siphon.BeingDrained ? " <color=#ffb060>being siphoned</color>" : "";
             string tanks = Car.ExtraTanks > 0 ? $" +{Car.ExtraTanks} can" : "";
-            GUI.Label(new Rect(r.x + 10f, r.y + 24f, r.width - 20f, 20f),
+            GUI.Label(new Rect(r.x + 10f, top + 24f, r.width - 20f, 20f),
                 $"<b>Fuel {level * 100f:0}%</b>{tanks} · ~{rangeKm:0.0} km · house {house}{state}");
         }
 
@@ -66,6 +86,7 @@ namespace FuelManagement
                             $"{(Car.ExtraTanks > 0 ? $", {Car.ExtraTanks} extra tank part(s)" : "")}).");
             Toggle(Settings.Enabled, "Fuel system on");
             Toggle(Settings.ShowHud, "Show gauge");
+            Toggle(Settings.GaugeDial, "Dial gauge (off: bar)");
             Toggle(Settings.HudAlign, "Line gauge up with the game's gauges");
             Slider(Settings.HudOffsetX, "Gauge offset right (px)", -400f, 400f, "0");
             Slider(Settings.HudOffsetY, "Gauge offset up (px)", -200f, 400f, "0");
@@ -80,6 +101,9 @@ namespace FuelManagement
             if (!Settings.AutoRange.Value) Slider(Settings.FixedRangeKm, "Fixed range (km)", 1f, 40f, "0.0");
             Slider(Settings.ClimbCost, "Climb cost (m per m)", 0f, 30f, "0");
             Slider(Settings.TankBonus, "Range per extra tank", 0f, 1.5f, "0.00");
+            GUILayout.Label($"Siphon: hold {Settings.SiphonKey.Value} stopped next to another car. Link: {Net.Describe()}");
+            Toggle(Settings.AllowSiphon, "Let other players siphon from me");
+            Slider(Settings.SiphonReserve, "Keep for myself (fraction of tank)", 0f, 0.5f, "0.00");
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Fill tank")) Fuel.Refill();
             if (GUILayout.Button("Close")) _menuOpen = false;

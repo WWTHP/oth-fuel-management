@@ -19,6 +19,17 @@ namespace FuelManagement
         /// <summary>Union of the game's gauges in GUI pixels (top-left origin), or null if not found.</summary>
         public static HudLayout.Box? Cluster { get; private set; }
 
+        /// <summary>The tilt dials alone (screen pixels), or null when they're hidden.</summary>
+        public static HudLayout.Box? Tilt { get; private set; }
+
+        /// <summary>The other HUD panels (health, RPM, odometer) when they qualify, else null.</summary>
+        public static HudLayout.Box? Other { get; private set; }
+
+        /// <summary>The stock tilt dials found active in the last scan (template for <see cref="StockDial"/>).</summary>
+        public static List<ContextUIInclineIndicator> Indicators { get; } = new();
+
+        private static bool _dumped;
+
         private static float _next;
         private static string _lastLog = "";
         private static readonly Il2CppStructArray<Vector3> Corners = new(4);
@@ -32,19 +43,26 @@ namespace FuelManagement
             var names = new List<string>();
             try
             {
-                Collect(Object.FindObjectsOfType<ContextUIInclineIndicator>(), incline, names);
+                var dials = Object.FindObjectsOfType<ContextUIInclineIndicator>();
+                Collect(dials, incline, names);
+                Indicators.Clear();
+                foreach (var d in dials)
+                    if (d != null && d.gameObject.activeInHierarchy) Indicators.Add(d);
                 Collect(Object.FindObjectsOfType<CarHealthUI>(), boxes, names);
                 Collect(Object.FindObjectsOfType<ContextUIEngineRPMDisplay>(), boxes, names);
                 Collect(Object.FindObjectsOfType<ContextUIOdometerPanel>(), boxes, names);
             }
             catch (System.Exception ex)
             {
-                Cluster = null;
+                Cluster = Tilt = Other = null;
+                Indicators.Clear();
                 Log("HUD anchor scan failed: " + ex.Message);
                 return;
             }
             var tilt = HudLayout.GaugeCluster(incline, Screen.width, Screen.height);
-            Cluster = tilt ?? HudLayout.GaugeCluster(boxes, Screen.width, Screen.height);
+            Tilt = tilt;
+            Other = HudLayout.GaugeCluster(boxes, Screen.width, Screen.height);
+            Cluster = tilt ?? Other;
             Log($"HUD anchors [{string.Join("; ", names)}] screen {Screen.width}x{Screen.height} → cluster " +
                 (Cluster.HasValue ? Fmt(Cluster.Value) + (tilt.HasValue ? " (tilt dials)" : " (other panels)")
                                   : "none (fallback position)"));
@@ -74,8 +92,48 @@ namespace FuelManagement
                 }
                 var box = new HudLayout.Box(x0, y0, x1 - x0, y1 - y0);
                 boxes.Add(box);
+                if (c.TryCast<ContextUIInclineIndicator>() != null) DumpOnce(c);
                 names.Add($"{typeof(T).Name} {Fmt(box)}");
             }
+        }
+
+        /// <summary>
+        /// Logs the tilt dial's parts once (paths, sprites, colours, sizes), so a later version
+        /// can draw the fuel dial with the game's own artwork.
+        /// </summary>
+        private static void DumpOnce(Component dial)
+        {
+            if (_dumped) return;
+            _dumped = true;
+            try
+            {
+                var lines = new List<string>();
+                var root = dial.transform;
+                foreach (var g in dial.GetComponentsInChildren<UnityEngine.UI.Graphic>(true))
+                {
+                    if (g == null || lines.Count >= 40) continue;
+                    var rt = g.rectTransform;
+                    string what = g.TryCast<UnityEngine.UI.Image>() is { } img
+                        ? $"Image sprite={(img.sprite != null ? img.sprite.name : "none")} type={img.type}"
+                        : g.GetIl2CppType().Name;
+                    lines.Add($"  {Path(g.transform, root)}: {what} color={g.color} size={rt.rect.width:0}x{rt.rect.height:0} " +
+                              $"active={g.gameObject.activeSelf}");
+                }
+                Mod.Log.Msg($"Tilt dial parts ({dial.gameObject.name}):\n" + string.Join("\n", lines));
+            }
+            catch (System.Exception ex) { Mod.Log.Warning("Tilt dial dump failed: " + ex.Message); }
+        }
+
+        private static string Path(Transform t, Transform root)
+        {
+            var parts = new List<string>();
+            for (var x = t; x != null && parts.Count < 8; x = x.parent)
+            {
+                parts.Add(x.name);
+                if (x == root) break;
+            }
+            parts.Reverse();
+            return string.Join("/", parts);
         }
 
         private static string Fmt(HudLayout.Box b) => $"({b.X:0},{b.Y:0} {b.W:0}x{b.H:0})";
