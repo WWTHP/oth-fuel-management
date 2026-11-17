@@ -15,6 +15,20 @@ namespace FuelManagement
         public static CarDamageSystem Damage { get; private set; }
         public static int ExtraTanks { get; private set; }
 
+        /// <summary>The local player's id (Fusion PlayerRef.Raw), 0 if unknown.</summary>
+        public static int Player { get; private set; }
+
+        /// <summary>Speed of the local car in m/s (0 without a car).</summary>
+        public static float Speed => Valid ? Body.linearVelocity.magnitude : 0f;
+
+        private sealed class Other
+        {
+            public int Player;
+            public Rigidbody Body;
+        }
+
+        private static readonly List<Other> Others = new();
+
         private static VehicleInput _input;
         private static float _nextScan, _nextParts;
         private static string _lastParts = "";
@@ -40,26 +54,67 @@ namespace FuelManagement
             }
         }
 
+        /// <summary>Finds the local car and, every scan, every other player's car.</summary>
         private static void Find()
         {
-            _input = null; Body = null; Damage = null;
+            _input = null; Body = null; Damage = null; Player = 0;
+            Others.Clear();
             foreach (var vi in Object.FindObjectsOfType<VehicleInput>())
             {
                 if (vi == null) continue;
+                bool local;
+                int player;
                 try
                 {
                     var obj = vi.Object;
-                    if (obj == null || !obj.HasInputAuthority) continue;
+                    if (obj == null) continue;
+                    local = obj.HasInputAuthority;
+                    player = obj.InputAuthority.Raw;
                 }
                 catch { continue; } // not spawned on the network yet
                 var body = vi.GetComponentInParent<Rigidbody>();
                 if (body == null) body = vi.transform.root.GetComponentInChildren<Rigidbody>();
                 if (body == null) continue;
+                if (!local)
+                {
+                    if (player > 0) Others.Add(new Other { Player = player, Body = body });
+                    continue;
+                }
+                if (_input != null) continue; // first local car wins
                 _input = vi;
                 Body = body;
+                Player = player;
                 Damage = vi.transform.root.GetComponentInChildren<CarDamageSystem>();
-                return;
             }
+        }
+
+        /// <summary>
+        /// The other player's car closest to the local car within <paramref name="radius"/> metres.
+        /// Returns false when there is none.
+        /// </summary>
+        public static bool NearestOther(float radius, out int player, out float distance)
+        {
+            player = 0;
+            distance = float.PositiveInfinity;
+            if (!Valid) return false;
+            var me = Body.transform.position;
+            foreach (var o in Others)
+            {
+                if (o.Body == null || o.Body.WasCollected) continue;
+                float d = Vector3.Distance(me, o.Body.transform.position);
+                if (d <= radius && d < distance) { distance = d; player = o.Player; }
+            }
+            return player > 0;
+        }
+
+        /// <summary>Distance from the local car to <paramref name="player"/>'s car (infinity if unknown).</summary>
+        public static float DistanceTo(int player)
+        {
+            if (!Valid) return float.PositiveInfinity;
+            foreach (var o in Others)
+                if (o.Player == player && o.Body != null && !o.Body.WasCollected)
+                    return Vector3.Distance(Body.transform.position, o.Body.transform.position);
+            return float.PositiveInfinity;
         }
 
         /// <summary>Counts mounted extra-tank cosmetics (e.g. side jerry cans). Logs the part list on change.</summary>
