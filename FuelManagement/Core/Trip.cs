@@ -35,22 +35,22 @@ namespace FuelManagement
         }
 
         /// <summary>
-        /// Number of distinct mounted part names that contain any keyword (case-insensitive).
-        /// Each part counts once, however many keywords it matches.
+        /// Number of mounted parts whose name contains any keyword (case-insensitive). Every mounted
+        /// copy counts (a can on each side = 2); a part counts once however many keywords it matches.
+        /// The cap (MaxExtraTanks) is applied by the caller / <see cref="RangeWithTanks"/>.
         /// </summary>
         public static int CountExtraTanks(IEnumerable<string> partNames, IReadOnlyList<string> keywords)
         {
             if (partNames == null || keywords == null || keywords.Count == 0) return 0;
-            var seen = new HashSet<string>();
+            int count = 0;
             foreach (var name in partNames)
             {
                 if (string.IsNullOrEmpty(name)) continue;
                 var lower = name.ToLowerInvariant();
-                if (seen.Contains(lower)) continue;
                 foreach (var k in keywords)
-                    if (lower.Contains(k, StringComparison.Ordinal)) { seen.Add(lower); break; }
+                    if (lower.Contains(k, StringComparison.Ordinal)) { count++; break; }
             }
-            return seen.Count;
+            return count;
         }
 
         /// <summary>Full-tank range with <paramref name="extraTanks"/> extra tanks of <paramref name="bonusEach"/> each.</summary>

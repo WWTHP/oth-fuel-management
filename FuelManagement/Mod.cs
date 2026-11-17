@@ -15,7 +15,7 @@ namespace FuelManagement
     /// </summary>
     public sealed class Mod : MelonMod
     {
-        public const string Version = "0.2.2";
+        public const string Version = "0.2.3";
         internal static MelonLogger.Instance Log;
 
         public override void OnInitializeMelon()
