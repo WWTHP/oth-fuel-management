@@ -17,7 +17,10 @@ namespace FuelManagement
         public static void Update()
         {
             if (Settings.Pressed(Settings.MenuKey)) _menuOpen = !_menuOpen;
-            if (Settings.Enabled.Value && Settings.ShowHud.Value && Settings.HudAlign.Value) HudAnchor.Update();
+            bool gauge = Settings.Enabled.Value && Settings.ShowHud.Value;
+            if (gauge && Settings.HudAlign.Value) HudAnchor.Update();
+            try { StockDial.Update(gauge && Settings.GaugeDial.Value && Settings.HudAlign.Value && Car.Valid); }
+            catch (System.Exception ex) { Mod.Log.Warning("Fuel dial: " + ex.Message); }
         }
 
         public static void Draw()
@@ -27,7 +30,11 @@ namespace FuelManagement
 
             if (Settings.Enabled.Value && Settings.ShowHud.Value && Car.Valid)
             {
-                if (Settings.GaugeDial.Value) FuelDial.Draw(scale, Siphon.Status);
+                if (Settings.GaugeDial.Value)
+                {
+                    // The cloned stock dial draws itself; the IMGUI dial is the fallback.
+                    if (!StockDial.Ready) FuelDial.Draw(scale, Siphon.Status);
+                }
                 else DrawGauge(scale);
             }
             if (_menuOpen) _menuRect = GUILayout.Window(0x4655454C, _menuRect, (GUI.WindowFunction)MenuWindow, "Fuel management");

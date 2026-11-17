@@ -93,7 +93,7 @@ namespace FuelManagement
 
         private static void Text(Rect r, string s, float size, Color color)
         {
-            _label.fontSize = Mathf.Max(8, Mathf.RoundToInt(size));
+            _label.fontSize = Mathf.Max(10, Mathf.RoundToInt(size * 1.3f)); // 0.2.0 test: too small to read
             _label.normal.textColor = color;
             var old = GUI.color;
             GUI.color = Color.white;

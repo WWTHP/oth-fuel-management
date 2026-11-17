@@ -25,6 +25,9 @@ namespace FuelManagement
         /// <summary>The other HUD panels (health, RPM, odometer) when they qualify, else null.</summary>
         public static HudLayout.Box? Other { get; private set; }
 
+        /// <summary>The stock tilt dials found active in the last scan (template for <see cref="StockDial"/>).</summary>
+        public static List<ContextUIInclineIndicator> Indicators { get; } = new();
+
         private static bool _dumped;
 
         private static float _next;
@@ -40,7 +43,11 @@ namespace FuelManagement
             var names = new List<string>();
             try
             {
-                Collect(Object.FindObjectsOfType<ContextUIInclineIndicator>(), incline, names);
+                var dials = Object.FindObjectsOfType<ContextUIInclineIndicator>();
+                Collect(dials, incline, names);
+                Indicators.Clear();
+                foreach (var d in dials)
+                    if (d != null && d.gameObject.activeInHierarchy) Indicators.Add(d);
                 Collect(Object.FindObjectsOfType<CarHealthUI>(), boxes, names);
                 Collect(Object.FindObjectsOfType<ContextUIEngineRPMDisplay>(), boxes, names);
                 Collect(Object.FindObjectsOfType<ContextUIOdometerPanel>(), boxes, names);
@@ -48,6 +55,7 @@ namespace FuelManagement
             catch (System.Exception ex)
             {
                 Cluster = Tilt = Other = null;
+                Indicators.Clear();
                 Log("HUD anchor scan failed: " + ex.Message);
                 return;
             }

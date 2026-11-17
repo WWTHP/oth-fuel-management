@@ -26,7 +26,8 @@ sent only to peers known to run the mod.
 | `Siphon.cs` | siphoning: request/answer between receiver and donor, hello/peer tracking |
 | `Net.cs` | Fusion messaging, copied from `snippets/over-the-hill/FusionNet.cs.txt` (tag `FUEL`) |
 | `Hud.cs` | bar gauge (level, km left, nearest house), F10 menu. No pop-up messages |
-| `FuelDial.cs` | default gauge: a round dial styled like the stock tilt dials, placed to their right |
+| `StockDial.cs` | default gauge: a clone of the game's own tilt dial (horizon frozen, car hidden) with a needle and TMP readout, placed to their right |
+| `FuelDial.cs` | fallback dial drawn with IMGUI when the stock dial can't be cloned |
 | `HudAnchor.cs` | finds the game's gauges on screen: the tilt dials (`ContextUIInclineIndicator`); else `CarHealthUI`, `ContextUIEngineRPMDisplay`, `ContextUIOdometerPanel` |
 | `Core/HudLayout.cs` | gauge placement: centred `12 px` above the game's bottom-left gauge cluster, plus offsets |
 | `Core/FuelTank.cs` | tank level, burn/refuel maths |
@@ -71,7 +72,22 @@ Refuelling starts only below 97% (99% in 0.1.1), so idling at a full tank near a
 "refuelling" and "full" (0.1.0 logged "Tank full." 861 times in one session).
 
 ### Gauge
-Default (0.2.0): a **dial** styled like the game's tilt dials (`ContextUIInclineIndicator`): dark
+Default: a **clone of the game's own tilt dial** (`StockDial`). The 0.2.0 log listed the
+dial's parts (`RollIndicator/Mask/{BlurredBackground, RotatingPart/{Terrain, Sky, GroundLine,
+Car}, Border, Lines}`). The right-hand dial is instantiated under an inactive holder, and its
+`ContextUIInclineIndicator` is removed before anything wakes, so the game never drives it. Then:
+horizon level, car hidden, a white needle on the horizon centre (E left → F right over the top;
+amber ≤ 25%, red ≤ 10% or LIMP), `FUEL` where the car was, and km left plus house distance or
+state in the band, in the game's TMP font (taken from the RPM display). Siphon messages sit
+above it. It's placed one dial-spacing right of the right-hand dial (or by the parent's layout
+group), and shows and hides with it. The log line is `Fuel dial cloned from ...`. CrashGuard
+stage `dial`.
+
+The first attempt (0.2.0 test) drew a look-alike with IMGUI. The user found its text hard to
+read and its style didn't match. It's kept as the fallback (`FuelDial`, text now 30% larger),
+described below.
+
+Fallback **dial** styled like the game's tilt dials (`ContextUIInclineIndicator`): dark
 disc, white ticks every 10% (red below 15%), light-grey lower band. The needle sweeps over the top
 half from E (left) to F (right). The band shows km left and the nearest house. The caption reads
 `FUEL` (`FUEL +1` with a jerry can), or `LIMP` / `REFUEL` / `SIPHON` / `SIPHONED`. Same size as
@@ -155,8 +171,9 @@ The gauge shows `siphoning` / `being siphoned` and, while the key is held, a sta
    Turn off "Let other players siphon from me" on the donor: receiver sees "doesn't allow".
 7. Multiplayer with a vanilla player: no errors on their side; holding F11 next to them says
    "no answer".
-9. Dial: sits right of the tilt dials, same size and top edge; needle at F when full, red LIMP
-   when empty. Log: `HUD anchors [...] (tilt dials)` and `Tilt dial parts ...`.
+9. Dial: a third stock-looking dial right of the tilt dials; needle at F when full, red with
+   LIMP when empty, readable km/house text. Hides with the stock dials (e.g. menus).
+   Log: `Fuel dial cloned from RollIndicator ...` (no `Couldn't build the fuel dial` warning).
 8. Other mods (WombatGD, AbominableSnowman) still sync: the receive hook chains (log
    `chained after another mod's hook` on whichever loads last).
 
@@ -164,6 +181,7 @@ The gauge shows `siphoning` / `being siphoned` and, while the key is held, a sta
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 0.2.1 | 2026-11-16 | Fuel dial is now a clone of the game's own tilt dial (needle, TMP text); the drawn dial is only a fallback. 0.2.0 test: tilt-dial anchor found, limp ON/OFF worked (2.8 m/s, torque 43–48), multiplayer hook chained cleanly; drawn dial hard to read / off-style. |
 | 0.2.0 | 2026-11-16 | Limp mode harsher (10 km/h cap, half max-damage power, F10 sliders). Multiplayer siphoning (hold F11 next to another car). Gauge anchored on the tilt dials (0.1.1 test at 3440x1440: no anchor matched, health UI is a full-screen container, RPM display is bottom right; hand-tuned offsets reset once via `HudLayoutVersion`). Refuel restarts below 97%. Dial gauge styled like the stock dials (bar still available). 0.1.1 test confirmed limp works: max damage = speed x0.50, torque x0.80 (9.5 → 4.8 m/s, 121 → 97). **Needs in-game testing, incl. 2-player MP.** |
 | 0.1.1 | 2026-11-15 | No pop-up messages; gauge centred above the game's gauges (+ offsets); fixed 8 km range by default; fix refuel/full flicker and log spam. |
 | 0.1.0 | 2026-11-15 | First version: tank, consumption, house refuel, jerry can bonus, auto range, limp mode, gauge, F10 menu. **Needs in-game testing.** |
