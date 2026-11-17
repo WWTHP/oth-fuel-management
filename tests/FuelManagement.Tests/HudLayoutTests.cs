@@ -166,6 +166,19 @@ namespace FuelManagement.Tests
             Assert.Equal(expected, HudLayout.NeedleAngle(level), 4);
         }
 
+        [Theory]
+        [InlineData(0f, -50f, 0f)]     // E: left
+        [InlineData(0.5f, 0f, 50f)]    // half: top
+        [InlineData(1f, 50f, 0f)]      // F: right
+        [InlineData(float.NaN, -50f, 0f)]
+        public void DialPoint_FollowsNeedleHalfCircle(float level, float x, float y)
+        {
+            var (px, py) = HudLayout.DialPoint(level, 50f);
+
+            Assert.Equal(x, px, 3);
+            Assert.Equal(y, py, 3);
+        }
+
         [Fact]
         public void Box_Edges_AreDerivedFromPositionAndSize()
         {

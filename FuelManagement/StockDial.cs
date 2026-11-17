@@ -95,7 +95,6 @@ namespace FuelManagement
                 if (mask == null || rotating == null) throw new System.InvalidOperationException("dial has no Mask/RotatingPart");
                 rotating.localRotation = Quaternion.identity;
                 var car = rotating.Find("Car");
-                var carRt = car != null ? car.GetComponent<RectTransform>() : null;
                 if (car != null) car.gameObject.SetActive(false);
 
                 var font = FindFont(_source);
@@ -119,8 +118,13 @@ namespace FuelManagement
                 _needleImg = _needle.gameObject.AddComponent<Image>();
                 _needleImg.raycastTarget = false;
 
-                var captionPos = carRt != null ? carRt.anchoredPosition : new Vector2(0f, w * 0.2f);
-                _caption = NewText("FuelCaption", pivot, font, w * 0.1f, Color.white, captionPos, w);
+                // The stock "Lines" only has side ticks (all a tilt dial needs): replace them with a
+                // fuel scale over the top, in the same thin white style.
+                var lines = mask.Find("Lines");
+                if (lines != null) lines.gameObject.SetActive(false);
+                AddTicks(pivot, w);
+
+                _caption = NewText("FuelCaption", pivot, font, w * 0.1f, Color.white, new Vector2(0f, w * 0.2f), w);
                 _km = NewText("FuelKm", pivot, font, w * 0.12f, Ink, new Vector2(0f, -w * 0.15f), w);
                 _info = NewText("FuelInfo", pivot, font, w * 0.085f, Ink, new Vector2(0f, -w * 0.27f), w);
                 // Siphon messages can be long: above the dial, outside the mask.
@@ -169,6 +173,28 @@ namespace FuelManagement
         {
             if (_root != null && !_root.WasCollected) Object.Destroy(_root);
             _root = null;
+        }
+
+        /// <summary>Ticks every 10% from E to F; longer at E, half and F; 0% and 10% red.</summary>
+        private static void AddTicks(Transform pivot, float w)
+        {
+            float outer = w * 0.47f;
+            for (int i = 0; i <= 10; i++)
+            {
+                float level = i / 10f;
+                bool major = i % 5 == 0;
+                float len = w * (major ? 0.09f : 0.055f), thick = w * (major ? 0.02f : 0.014f);
+                var (x, y) = HudLayout.DialPoint(level, outer - len);
+                var t = NewRect($"FuelTick{i}", pivot);
+                t.anchorMin = t.anchorMax = new Vector2(0.5f, 0.5f);
+                t.pivot = new Vector2(0.5f, 0f); // inner end; the tick grows outwards
+                t.anchoredPosition = new Vector2(x, y);
+                t.sizeDelta = new Vector2(thick, len);
+                t.localEulerAngles = new Vector3(0f, 0f, -HudLayout.NeedleAngle(level));
+                var img = t.gameObject.AddComponent<Image>();
+                img.raycastTarget = false;
+                img.color = i <= 1 ? Red : Color.white;
+            }
         }
 
         private static RectTransform NewRect(string name, Transform parent)

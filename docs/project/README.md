@@ -77,7 +77,7 @@ dial's parts (`RollIndicator/Mask/{BlurredBackground, RotatingPart/{Terrain, Sky
 Car}, Border, Lines}`). The right-hand dial is instantiated under an inactive holder, and its
 `ContextUIInclineIndicator` is removed before anything wakes, so the game never drives it. Then:
 horizon level, car hidden, a white needle on the horizon centre (E left → F right over the top;
-amber ≤ 25%, red ≤ 10% or LIMP), `FUEL` where the car was, and km left plus house distance or
+amber ≤ 25%, red ≤ 10% or LIMP), tick marks every 10% over the top (the stock `Lines` image only has side ticks, so it's hidden), `FUEL` in the upper half, and km left plus house distance or
 state in the band, in the game's TMP font (taken from the RPM display). Siphon messages sit
 above it. It's placed one dial-spacing right of the right-hand dial (or by the parent's layout
 group), and shows and hides with it. The log line is `Fuel dial cloned from ...`. CrashGuard
@@ -181,6 +181,7 @@ The gauge shows `siphoning` / `being siphoned` and, while the key is held, a sta
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 0.2.2 | 2026-11-16 | Fuel dial: own tick scale over the top (every 10%, majors at E/½/F, red at 0–10%) replacing the stock side-only `Lines`; FUEL caption moved off the horizon. 0.2.1 test: clone worked (font NunitoSans-Bold SDF, no layout group). |
 | 0.2.1 | 2026-11-16 | Fuel dial is now a clone of the game's own tilt dial (needle, TMP text); the drawn dial is only a fallback. 0.2.0 test: tilt-dial anchor found, limp ON/OFF worked (2.8 m/s, torque 43–48), multiplayer hook chained cleanly; drawn dial hard to read / off-style. |
 | 0.2.0 | 2026-11-16 | Limp mode harsher (10 km/h cap, half max-damage power, F10 sliders). Multiplayer siphoning (hold F11 next to another car). Gauge anchored on the tilt dials (0.1.1 test at 3440x1440: no anchor matched, health UI is a full-screen container, RPM display is bottom right; hand-tuned offsets reset once via `HudLayoutVersion`). Refuel restarts below 97%. Dial gauge styled like the stock dials (bar still available). 0.1.1 test confirmed limp works: max damage = speed x0.50, torque x0.80 (9.5 → 4.8 m/s, 121 → 97). **Needs in-game testing, incl. 2-player MP.** |
 | 0.1.1 | 2026-11-15 | No pop-up messages; gauge centred above the game's gauges (+ offsets); fixed 8 km range by default; fix refuel/full flicker and log spam. |

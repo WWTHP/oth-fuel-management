@@ -116,6 +116,16 @@ namespace FuelManagement
             return -90f + 180f * l;
         }
 
+        /// <summary>
+        /// Where a dial mark for <paramref name="level"/> sits at <paramref name="radius"/> from the
+        /// dial centre: x right, y up (UI space), on the same E→F half circle as the needle.
+        /// </summary>
+        public static (float X, float Y) DialPoint(float level, float radius)
+        {
+            double a = NeedleAngle(level) * Math.PI / 180.0;
+            return ((float)(Math.Sin(a) * radius), (float)(Math.Cos(a) * radius));
+        }
+
         private static bool Finite(float f) => !float.IsNaN(f) && !float.IsInfinity(f);
     }
 }
