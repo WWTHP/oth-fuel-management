@@ -139,6 +139,13 @@ namespace FuelManagement
 
         public static void Save() => Cat.SaveToFile(false);
 
+        /// <summary>Every user setting back to its default. Mod-managed state (fuel level, layout version) stays.</summary>
+        public static void ResetToDefaults()
+        {
+            foreach (var e in Cat.Entries)
+                if (e != HudLayoutVersion && e != SavedLevel) e.ResetToDefault();
+        }
+
         public static bool Pressed(MelonPreferences_Entry<string> entry)
         {
             var kb = Keyboard.current;

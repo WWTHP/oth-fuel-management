@@ -8,8 +8,8 @@ mark and back is relaxed; distant question marks need planning. When the tank ru
 goes into **limp mode**, crawling worse than a car at maximum damage, until it reaches a house.
 In multiplayer, a player can **siphon** fuel from another player's car parked right next to theirs.
 
-Current version: `Mod.Version` in `FuelManagement/Mod.cs`. Menu key **F10**, siphon key **F11**
-(hold). Settings in `MelonPreferences.cfg [FuelManagement]`. Each player's game owns only its
+Current version: `Mod.Version` in `FuelManagement/Mod.cs`. Settings: the settings hub tab **Fuel**
+(F5); without the hub, menu key **F10**. Siphon key **F11** (hold). Settings in `MelonPreferences.cfg [FuelManagement]`. Each player's game owns only its
 own tank. The only network traffic is siphoning (Fusion tag `"FUEL"` `0x4C455546`, protocol 1),
 sent only to peers known to run the mod.
 
@@ -25,7 +25,9 @@ sent only to peers known to run the mod.
 | `Limp.cs` | limp mode via the game's own `DamageEffects` curves, made harsher by `Core/LimpTargets` |
 | `Siphon.cs` | siphoning: request/answer between receiver and donor, hello/peer tracking |
 | `Net.cs` | Fusion messaging, copied from `snippets/over-the-hill/FusionNet.cs.txt` (tag `FUEL`) |
-| `Hud.cs` | bar gauge (level, km left, nearest house), F10 menu. No pop-up messages |
+| `Hud.cs` | bar gauge (level, km left, nearest house). No pop-up messages |
+| `Menu.cs` | settings (`DrawBody` = hub tab "Fuel"; F10 window without the hub), Fill tank, reset; saves when closed / tab left |
+| `HubTab.cs` | settings hub snippet (mod-template `snippets/generic/HubTab.cs.txt`) |
 | `StockDial.cs` | default gauge: a clone of the game's own tilt dial (horizon frozen, car hidden) with a needle and TMP readout, placed to their right |
 | `FuelDial.cs` | fallback dial drawn with IMGUI when the stock dial can't be cloned |
 | `HudAnchor.cs` | finds the game's gauges on screen: the tilt dials (`ContextUIInclineIndicator`); else `CarHealthUI`, `ContextUIEngineRPMDisplay`, `ContextUIOdometerPanel` |
@@ -181,6 +183,7 @@ The gauge shows `siphoning` / `being siphoned` and, while the key is held, a sta
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 0.3.0 | 2026-11-17 | Menu is a tab in the settings hub (F5); F10 only opens it when the hub isn't installed. Laid out in sections (tank, gauge, empty tank, siphon) with a Reset defaults; settings save when the menu closes instead of on every slider move. |
 | 0.2.3 | 2026-11-17 | Every mounted extra-tank part counts (a can on each side = +2), still capped at `MaxExtraTanks` (2). Before, identical names counted once. |
 | 0.2.2 | 2026-11-16 | Fuel dial: own tick scale over the top (every 10%, majors at E/½/F, red at 0–10%) replacing the stock side-only `Lines`; FUEL caption moved off the horizon. 0.2.1 test: clone worked (font NunitoSans-Bold SDF, no layout group). |
 | 0.2.1 | 2026-11-16 | Fuel dial is now a clone of the game's own tilt dial (needle, TMP text); the drawn dial is only a fallback. 0.2.0 test: tilt-dial anchor found, limp ON/OFF worked (2.8 m/s, torque 43–48), multiplayer hook chained cleanly; drawn dial hard to read / off-style. |
