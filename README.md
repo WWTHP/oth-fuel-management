@@ -4,7 +4,7 @@
 every car a fuel tank. Driving burns fuel (climbing burns more), any house refills it, side jerry
 cans add range, and an empty tank puts the car into limp mode (a crawl, worse than maximum damage)
 until you reach a house. In multiplayer, hold F11 next to another player's car to siphon their
-fuel. F10 menu.
+fuel. Settings: the settings hub tab (F10 menu without the hub).
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt

@@ -15,7 +15,8 @@ namespace FuelManagement
     /// </summary>
     public sealed class Mod : MelonMod
     {
-        public const string Version = "0.2.3";
+        public const string Version = "0.3.0";
+        private static readonly string[] Categories = { "FuelManagement" };
         internal static MelonLogger.Instance Log;
 
         public override void OnInitializeMelon()
@@ -26,6 +27,8 @@ namespace FuelManagement
             Fuel.Init();
             Net.Init();
             Siphon.Init();
+            HubTab.Register("Fuel", Menu.DrawBody, categories: Categories,
+                closed: Menu.SaveIfDirty, reset: Menu.ResetDefaults, owner: "FuelManagement " + Version);
             Log.Msg($"FuelManagement {Version} loaded. {Settings.MenuKey.Value} = menu, " +
                     $"hold {Settings.SiphonKey.Value} next to another car = siphon. " +
                     $"Fuel {Fuel.Tank.Level * 100f:0}%.");

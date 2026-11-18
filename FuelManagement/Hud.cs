@@ -5,18 +5,16 @@ namespace FuelManagement
 {
     /// <summary>
     /// IMGUI: the fuel gauge (a dial next to the game's tilt dials, see <see cref="FuelDial"/>, or
-    /// a bar centred above the game's gauges), and the settings menu (MenuKey).
+    /// a bar centred above the game's gauges). The settings menu is <see cref="Menu"/>.
     /// No pop-up messages: the gauge is the only in-game indication.
     /// </summary>
     internal static class Hud
     {
         private const float GaugeW = 260f, GaugeH = 52f, Gap = 12f, StatusH = 20f;
-        private static bool _menuOpen;
-        private static Rect _menuRect = new(60f, 120f, 420f, 0f);
 
         public static void Update()
         {
-            if (Settings.Pressed(Settings.MenuKey)) _menuOpen = !_menuOpen;
+            Menu.Update();
             bool gauge = Settings.Enabled.Value && Settings.ShowHud.Value;
             if (gauge && Settings.HudAlign.Value) HudAnchor.Update();
             try { StockDial.Update(gauge && Settings.GaugeDial.Value && Settings.HudAlign.Value && Car.Valid); }
@@ -37,7 +35,7 @@ namespace FuelManagement
                 }
                 else DrawGauge(scale);
             }
-            if (_menuOpen) _menuRect = GUILayout.Window(0x4655454C, _menuRect, (GUI.WindowFunction)MenuWindow, "Fuel management");
+            Menu.Draw(scale);
             GUI.matrix = Matrix4x4.identity;
         }
 
@@ -77,51 +75,6 @@ namespace FuelManagement
             string tanks = Car.ExtraTanks > 0 ? $" +{Car.ExtraTanks} can" : "";
             GUI.Label(new Rect(r.x + 10f, top + 24f, r.width - 20f, 20f),
                 $"<b>Fuel {level * 100f:0}%</b>{tanks} · ~{rangeKm:0.0} km · house {house}{state}");
-        }
-
-        private static void MenuWindow(int id)
-        {
-            GUILayout.Label($"Full tank: {Fuel.RangeM / 1000f:0.0} km " +
-                            $"({(Settings.AutoRange.Value && Houses.CalibratedRangeM.HasValue ? "auto from map" : "fixed")}" +
-                            $"{(Car.ExtraTanks > 0 ? $", {Car.ExtraTanks} extra tank part(s)" : "")}).");
-            Toggle(Settings.Enabled, "Fuel system on");
-            Toggle(Settings.ShowHud, "Show gauge");
-            Toggle(Settings.GaugeDial, "Dial gauge (off: bar)");
-            Toggle(Settings.HudAlign, "Line gauge up with the game's gauges");
-            Slider(Settings.HudOffsetX, "Gauge offset right (px)", -400f, 400f, "0");
-            Slider(Settings.HudOffsetY, "Gauge offset up (px)", -200f, 400f, "0");
-            Toggle(Settings.LimpMode, "Limp mode when empty");
-            if (Settings.LimpMode.Value)
-            {
-                Slider(Settings.LimpMaxKmh, "Limp top speed (km/h)", 3f, 40f, "0");
-                Slider(Settings.LimpPower, "Limp power (x max-damage torque)", 0.1f, 1f, "0.00");
-            }
-            Toggle(Settings.AutoRange, "Size tank from the map");
-            Slider(Settings.RangeScale, "Range scale", 0.3f, 3f, "0.00");
-            if (!Settings.AutoRange.Value) Slider(Settings.FixedRangeKm, "Fixed range (km)", 1f, 40f, "0.0");
-            Slider(Settings.ClimbCost, "Climb cost (m per m)", 0f, 30f, "0");
-            Slider(Settings.TankBonus, "Range per extra tank", 0f, 1.5f, "0.00");
-            GUILayout.Label($"Siphon: hold {Settings.SiphonKey.Value} stopped next to another car. Link: {Net.Describe()}");
-            Toggle(Settings.AllowSiphon, "Let other players siphon from me");
-            Slider(Settings.SiphonReserve, "Keep for myself (fraction of tank)", 0f, 0.5f, "0.00");
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Fill tank")) Fuel.Refill();
-            if (GUILayout.Button("Close")) _menuOpen = false;
-            GUILayout.EndHorizontal();
-            GUI.DragWindow();
-        }
-
-        private static void Toggle(MelonPreferences_Entry<bool> e, string label)
-        {
-            bool v = GUILayout.Toggle(e.Value, label);
-            if (v != e.Value) { e.Value = v; Settings.Save(); }
-        }
-
-        private static void Slider(MelonPreferences_Entry<float> e, string label, float min, float max, string fmt)
-        {
-            GUILayout.Label($"{label}: {e.Value.ToString(fmt, System.Globalization.CultureInfo.InvariantCulture)}");
-            float v = GUILayout.HorizontalSlider(e.Value, min, max);
-            if (Mathf.Abs(v - e.Value) > 1e-4f) { e.Value = v; Settings.Save(); }
         }
     }
 }
